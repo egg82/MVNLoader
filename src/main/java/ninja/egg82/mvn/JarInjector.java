@@ -309,6 +309,6 @@ public class JarInjector {
     }
 
     private boolean hasDependency(@NotNull InjectableClassLoader classLoader, @NotNull String groupId, @NotNull String artifactId) {
-        return classLoader.findResource("META-INF/maven/" + groupId + "/" + artifactId + "pom.xml") != null;
+        return classLoader.findResource("META-INF/maven/" + groupId + "/" + artifactId + "/pom.xml") != null;
     }
 }
