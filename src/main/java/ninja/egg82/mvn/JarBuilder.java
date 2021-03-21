@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public class JarBuilder {
@@ -85,10 +86,10 @@ public class JarBuilder {
 
         String realVersion = HttpUtils.getRealVersion(repositoryUrl, proxy, groupId, artifactId, version, logger);
         File outFile;
-        if (!realVersion.equals(version)) {
+        if (version.toLowerCase(Locale.ROOT).endsWith("-snapshot")) {
             outFile = HttpUtils.getPomCacheFile(cacheDir, groupId, artifactId, version, realVersion);
         } else {
-            outFile = HttpUtils.getPomCacheFile(cacheDir, groupId, artifactId, version);
+            outFile = HttpUtils.getPomCacheFile(cacheDir, groupId, artifactId, realVersion);
         }
         if (outFile.exists()) {
             return outFile;
@@ -96,7 +97,7 @@ public class JarBuilder {
 
         if (proxy != null) {
             try {
-                if (!realVersion.equals(version)) {
+                if (version.toLowerCase(Locale.ROOT).endsWith("-snapshot")) {
                     return HttpUtils.tryDownloadPom(outFile, proxy, groupId, artifactId, version, realVersion);
                 } else {
                     return HttpUtils.tryDownloadPom(outFile, proxy, groupId, artifactId, realVersion);
@@ -106,7 +107,7 @@ public class JarBuilder {
             }
         }
         try {
-            if (!realVersion.equals(version)) {
+            if (version.toLowerCase(Locale.ROOT).endsWith("-snapshot")) {
                 return HttpUtils.tryDownloadPom(outFile, repositoryUrl, groupId, artifactId, version, realVersion);
             } else {
                 return HttpUtils.tryDownloadPom(outFile, repositoryUrl, groupId, artifactId, realVersion);

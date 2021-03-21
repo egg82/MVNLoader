@@ -342,6 +342,38 @@ public class HttpUtils {
     }
 
     @NotNull
+    public static Metadata tryGetMetadata(
+            @NotNull String repositoryUrl,
+            @NotNull String groupId,
+            @NotNull String artifactId
+    ) throws IOException {
+        if (repositoryUrl.length() > 0 && repositoryUrl.charAt(repositoryUrl.length() - 1) != '/') {
+            repositoryUrl += '/';
+        }
+        repositoryUrl += groupId.replace('.', '/') + "/" + artifactId + "/maven-metadata.xml";
+
+        URL url = new URL(repositoryUrl);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setInstanceFollowRedirects(true);
+        conn.setConnectTimeout(3500);
+        conn.setReadTimeout(5000);
+        conn.setDoInput(true);
+        conn.setDoOutput(false);
+
+        conn.setRequestProperty("Accept-Language", "en-US,en;q=0.8");
+        conn.setRequestProperty("Accept-Encoding", HAS_BROTLI ? "br,gzip,deflate;q=0.8" : "gzip,deflate;q=0.8");
+        conn.setRequestProperty("User-Agent", "egg82/MVNLoader");
+
+        throwOnStandardErrors(conn);
+
+        try (InputStream in = compressor.decompress(conn.getInputStream(), conn.getHeaderField("Content-Encoding"))) {
+            return new MetadataXpp3Reader().read(in);
+        } catch (XmlPullParserException ex) {
+            throw new IOException("Could not parse maven-metadata XML file " + repositoryUrl, ex);
+        }
+    }
+
+    @NotNull
     public static String getRealVersion(
             @NotNull String repositoryUrl,
             @Nullable String proxy,
@@ -368,6 +400,38 @@ public class HttpUtils {
             return version.substring(0, version.lastIndexOf('-')) + "-" + metadata.getVersioning()
                     .getSnapshot()
                     .getTimestamp() + "-" + metadata.getVersioning().getSnapshot().getBuildNumber();
+        } else if (version.equalsIgnoreCase("release")) {
+            Metadata metadata = null;
+            if (proxy != null) {
+                try {
+                    metadata = tryGetMetadata(proxy, groupId, artifactId);
+                } catch (IOException ex) {
+                    if (logger != null) {
+                        logger.warn("Could not download metadata XML from proxy URL " + proxy, ex);
+                    }
+                }
+            }
+            if (metadata == null) {
+                metadata = tryGetMetadata(repositoryUrl, groupId, artifactId);
+            }
+
+            return metadata.getVersioning().getRelease();
+        } else if (version.equalsIgnoreCase("latest")) {
+            Metadata metadata = null;
+            if (proxy != null) {
+                try {
+                    metadata = tryGetMetadata(proxy, groupId, artifactId);
+                } catch (IOException ex) {
+                    if (logger != null) {
+                        logger.warn("Could not download metadata XML from proxy URL " + proxy, ex);
+                    }
+                }
+            }
+            if (metadata == null) {
+                metadata = tryGetMetadata(repositoryUrl, groupId, artifactId);
+            }
+
+            return metadata.getVersioning().getLatest();
         }
         return version;
     }

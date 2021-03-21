@@ -57,10 +57,10 @@ public class URLModelResolver implements ModelResolver {
 
         File outFile;
         try {
-            if (!realVersion.equals(version)) {
+            if (version.toLowerCase(Locale.ROOT).endsWith("-snapshot")) {
                 outFile = HttpUtils.getPomCacheFile(cacheDir, groupId, artifactId, version, realVersion);
             } else {
-                outFile = HttpUtils.getPomCacheFile(cacheDir, groupId, artifactId, version);
+                outFile = HttpUtils.getPomCacheFile(cacheDir, groupId, artifactId, realVersion);
             }
         } catch (IOException ex) {
             throw new UnresolvableModelException(ex, groupId, artifactId, version);
@@ -71,7 +71,7 @@ public class URLModelResolver implements ModelResolver {
 
         if (proxy != null) {
             try {
-                if (!realVersion.equals(version)) {
+                if (version.toLowerCase(Locale.ROOT).endsWith("-snapshot")) {
                     return new URLModelSource(repositoryUrl, HttpUtils.tryDownloadPom(outFile, proxy, groupId, artifactId, version, realVersion));
                 } else {
                     return new URLModelSource(repositoryUrl, HttpUtils.tryDownloadPom(outFile, proxy, groupId, artifactId, realVersion));
@@ -80,7 +80,7 @@ public class URLModelResolver implements ModelResolver {
             }
         }
         try {
-            if (!realVersion.equals(version)) {
+            if (version.toLowerCase(Locale.ROOT).endsWith("-snapshot")) {
                 return new URLModelSource(repositoryUrl, HttpUtils.tryDownloadPom(outFile, repositoryUrl, groupId, artifactId, version, realVersion));
             } else {
                 return new URLModelSource(repositoryUrl, HttpUtils.tryDownloadPom(outFile, repositoryUrl, groupId, artifactId, realVersion));
@@ -90,7 +90,7 @@ public class URLModelResolver implements ModelResolver {
 
         for (Repository repository : repositories) {
             try {
-                if (!realVersion.equals(version)) {
+                if (version.toLowerCase(Locale.ROOT).endsWith("-snapshot")) {
                     return new URLModelSource(repository.getUrl(), HttpUtils.tryDownloadPom(outFile, repository.getUrl(), groupId, artifactId, version, realVersion));
                 } else {
                     return new URLModelSource(repository.getUrl(), HttpUtils.tryDownloadPom(outFile, repository.getUrl(), groupId, artifactId, realVersion));

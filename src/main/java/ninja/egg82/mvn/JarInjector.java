@@ -111,7 +111,7 @@ public class JarInjector {
         Map<@NotNull String, @Nullable DependencyWrapper> dependencies = new HashMap<>();
         List<@NotNull Model> models = new ArrayList<>();
         for (JarBuilder builder : builders) {
-            Model model = buildChain(builder, cacheDir, dependencies, true);
+            Model model = buildChain(builder, cacheDir, classLoader, dependencies, true);
             if (model != null) {
                 models.add(model);
             }
@@ -212,16 +212,16 @@ public class JarInjector {
         for (Repository repository : repositories) {
             try {
                 String realVersion = HttpUtils.getRealVersion(repository.getUrl(), null, groupId, artifactId, version, null);
-                if (!realVersion.equals(version)) {
+                if (version.toLowerCase(Locale.ROOT).endsWith("-snapshot")) {
                     outFile = HttpUtils.getJarCacheFile(cacheDir, groupId, artifactId, version, realVersion);
                 } else {
-                    outFile = HttpUtils.getJarCacheFile(cacheDir, groupId, artifactId, version);
+                    outFile = HttpUtils.getJarCacheFile(cacheDir, groupId, artifactId, realVersion);
                 }
                 if (outFile.exists()) {
                     return relocate(outFile, groupId, artifactId, version, realVersion);
                 }
 
-                if (!realVersion.equals(version)) {
+                if (version.toLowerCase(Locale.ROOT).endsWith("-snapshot")) {
                     return relocate(
                             HttpUtils.tryDownloadJar(outFile, repository.getUrl(), groupId, artifactId, version, realVersion),
                             groupId,
@@ -230,7 +230,7 @@ public class JarInjector {
                             realVersion
                     );
                 } else {
-                    return relocate(HttpUtils.tryDownloadJar(outFile, repository.getUrl(), groupId, artifactId, version), groupId, artifactId, version, realVersion);
+                    return relocate(HttpUtils.tryDownloadJar(outFile, repository.getUrl(), groupId, artifactId, realVersion), groupId, artifactId, version, realVersion);
                 }
             } catch (IOException ignored) {
             }
@@ -251,10 +251,10 @@ public class JarInjector {
         }
 
         File outFile;
-        if (!realVersion.equals(version)) {
+        if (version.toLowerCase(Locale.ROOT).endsWith("-snapshot")) {
             outFile = HttpUtils.getRelocatedJarCacheFile(cacheDir, groupId, artifactId, version, realVersion);
         } else {
-            outFile = HttpUtils.getRelocatedJarCacheFile(cacheDir, groupId, artifactId, version);
+            outFile = HttpUtils.getRelocatedJarCacheFile(cacheDir, groupId, artifactId, realVersion);
         }
 
         JarRelocator relocator = new JarRelocator(inFile, outFile, relocations);
@@ -266,6 +266,7 @@ public class JarInjector {
     private Model buildChain(
             @NotNull JarBuilder builder,
             @NotNull File cacheDir,
+            @NotNull URLClassLoader classLoader,
             @NotNull Map<@NotNull String, @Nullable DependencyWrapper> dependencies,
             boolean recurse
     ) throws IOException, ModelBuildingException {
@@ -280,12 +281,11 @@ public class JarInjector {
         boolean hasShade = hasShadePlugin(model);
 
         for (Dependency dependency : model.getDependencies()) {
-            if (
-                    dependency.getScope().equalsIgnoreCase("provided")
-                            || dependency.getScope().equalsIgnoreCase("runtime")
-                            || dependency.getScope().equalsIgnoreCase("system")
-                            || (!hasShade && dependency.getScope().equalsIgnoreCase("compile"))
-            ) {
+            if (!hasShade && !dependency.isOptional() && dependency.getScope().equalsIgnoreCase("compile") && !hasDependency(
+                    classLoader,
+                    dependency.getGroupId(),
+                    dependency.getArtifactId()
+            )) {
                 if (!dependencies.containsKey(dependency.getGroupId() + ":" + dependency.getArtifactId())) {
                     dependencies.put(
                             dependency.getGroupId() + ":" + dependency.getArtifactId() + ":" + dependency.getVersion(),
@@ -307,10 +307,10 @@ public class JarInjector {
         // Again, breadth-first. Only add deps, don't recurse until everything under this pom has been accounted for
         if (recurse) {
             for (JarBuilder b : currentBuilders) {
-                buildChain(b, cacheDir, dependencies, false);
+                buildChain(b, cacheDir, classLoader, dependencies, false);
             }
             for (JarBuilder b : currentBuilders) {
-                buildChain(b, cacheDir, dependencies, true);
+                buildChain(b, cacheDir, classLoader, dependencies, true);
             }
         }
 
@@ -319,10 +319,18 @@ public class JarInjector {
 
     private boolean hasShadePlugin(@NotNull Model model) {
         for (Plugin plugin : model.getBuild().getPlugins()) {
-            if ("org.apache.maven.plugins".equals(plugin.getGroupId()) && "maven-shade-plugin".equals(plugin.getArtifactId())) {
+            if (
+                    ("org.apache.maven.plugins".equals(plugin.getGroupId()) && "maven-shade-plugin".equals(plugin.getArtifactId()))
+                            || ("org.apache.maven.plugins".equals(plugin.getGroupId()) && "maven-assembly-plugin".equals(plugin.getArtifactId()))
+                            || ("org.springframework.boot".equals(plugin.getGroupId()) && "spring-boot-maven-plugin".equals(plugin.getArtifactId()))
+            ) {
                 return true;
             }
         }
         return false;
+    }
+
+    private boolean hasDependency(@NotNull URLClassLoader classLoader, @NotNull String groupId, @NotNull String artifactId) {
+        return classLoader.findResource("META-INF/maven/" + groupId + "/" + artifactId + "pom.xml") != null;
     }
 }

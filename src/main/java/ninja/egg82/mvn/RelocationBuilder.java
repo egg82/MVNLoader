@@ -51,8 +51,12 @@ public class RelocationBuilder implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         RelocationBuilder that = (RelocationBuilder) o;
         return pattern.equals(that.pattern) && relocatedPrefix.equals(that.relocatedPrefix);
     }
