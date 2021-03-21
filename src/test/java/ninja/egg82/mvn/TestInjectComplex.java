@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.net.URLClassLoader;
 
 class TestInjectComplex {
     @Test
@@ -87,7 +86,7 @@ class TestInjectComplex {
         injector.addRelocation(new RelocationBuilder("redis{}clients{}jedis", "me.egg82.antivpn.external").build("{}", "."));
 
         // Inject
-        injector.inject((URLClassLoader) getClass().getClassLoader(), 1);
+        injector.inject(new InjectableClassLoader(getClass().getClassLoader()), 1);
     }
 
     // Prevent Maven from relocating these

@@ -16,10 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -28,17 +24,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class JarInjector {
-    private static final Method ADD_URL_METHOD;
-
-    static {
-        try {
-            ADD_URL_METHOD = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
-            ADD_URL_METHOD.setAccessible(true);
-        } catch (NoSuchMethodException e) {
-            throw new ExceptionInInitializerError(e);
-        }
-    }
-
     private final @NotNull Logger logger;
 
     private final long maxDownloadTime;
@@ -103,11 +88,11 @@ public class JarInjector {
         return this;
     }
 
-    public void inject(@NotNull URLClassLoader classLoader) throws IOException, ModelBuildingException {
+    public void inject(@NotNull InjectableClassLoader classLoader) throws IOException, ModelBuildingException {
         inject(classLoader, Math.max(2, Runtime.getRuntime().availableProcessors() / 2));
     }
 
-    public void inject(@NotNull URLClassLoader classLoader, int threads) throws IOException, ModelBuildingException {
+    public void inject(@NotNull InjectableClassLoader classLoader, int threads) throws IOException, ModelBuildingException {
         Map<@NotNull String, @Nullable DependencyWrapper> dependencies = new HashMap<>();
         List<@NotNull Model> models = new ArrayList<>();
         for (JarBuilder builder : builders) {
@@ -175,29 +160,21 @@ public class JarInjector {
     }
 
     @NotNull
-    private File inject(@NotNull URLClassLoader classLoader, @NotNull Model model) throws IOException {
+    private File inject(@NotNull InjectableClassLoader classLoader, @NotNull Model model) throws IOException {
         File retVal = downloadOrThrow(model.getRepositories(), model.getGroupId(), model.getArtifactId(), model.getVersion());
-        try {
-            ADD_URL_METHOD.invoke(classLoader, retVal.toURI().toURL());
-        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
-            throw new IOException("Could not inject artifact " + retVal.getAbsolutePath(), ex);
-        }
+        classLoader.addJar(retVal.toURI().toURL());
         return retVal;
     }
 
     @NotNull
-    private File inject(@NotNull URLClassLoader classLoader, @NotNull DependencyWrapper wrapper) throws IOException {
+    private File inject(@NotNull InjectableClassLoader classLoader, @NotNull DependencyWrapper wrapper) throws IOException {
         File retVal = downloadOrThrow(
                 wrapper.getRepositories(),
                 wrapper.getDependency().getGroupId(),
                 wrapper.getDependency().getArtifactId(),
                 wrapper.getDependency().getVersion()
         );
-        try {
-            ADD_URL_METHOD.invoke(classLoader, retVal.toURI().toURL());
-        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
-            throw new IOException("Could not inject artifact " + retVal.getAbsolutePath(), ex);
-        }
+        classLoader.addJar(retVal.toURI().toURL());
         return retVal;
     }
 
@@ -266,7 +243,7 @@ public class JarInjector {
     private Model buildChain(
             @NotNull JarBuilder builder,
             @NotNull File cacheDir,
-            @NotNull URLClassLoader classLoader,
+            @NotNull InjectableClassLoader classLoader,
             @NotNull Map<@NotNull String, @Nullable DependencyWrapper> dependencies,
             boolean recurse
     ) throws IOException, ModelBuildingException {
@@ -330,7 +307,7 @@ public class JarInjector {
         return false;
     }
 
-    private boolean hasDependency(@NotNull URLClassLoader classLoader, @NotNull String groupId, @NotNull String artifactId) {
+    private boolean hasDependency(@NotNull InjectableClassLoader classLoader, @NotNull String groupId, @NotNull String artifactId) {
         return classLoader.findResource("META-INF/maven/" + groupId + "/" + artifactId + "pom.xml") != null;
     }
 }

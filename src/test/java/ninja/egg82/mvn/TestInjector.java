@@ -7,14 +7,13 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.net.URLClassLoader;
 
 class TestInjector {
     @Test
     void injectSimple() throws URISyntaxException, ModelBuildingException, IOException {
         new JarInjector(new File(getCurrentDir(), "cache"))
                 .addBuilder(new JarBuilder("io.ebean", "ebean-core", "12.7.2", "https://repo.maven.apache.org/maven2"))
-                .inject((URLClassLoader) getClass().getClassLoader(), 1);
+                .inject(new InjectableClassLoader(getClass().getClassLoader()), 1);
     }
 
     @Test
@@ -23,7 +22,7 @@ class TestInjector {
                 .addBuilder(new JarBuilder("io.ebean", "ebean-core", "12.7.2", "https://repo.maven.apache.org/maven2"))
                 .addRelocation(new RelocationBuilder("io.ebeaninternal", "ninja.egg82.mvn.external").build())
                 .addRelocation(new RelocationBuilder("io.ebeanservice", "ninja.egg82.mvn.external").build())
-                .inject((URLClassLoader) getClass().getClassLoader(), 1);
+                .inject(new InjectableClassLoader(getClass().getClassLoader()), 1);
     }
 
     @Test
@@ -31,7 +30,7 @@ class TestInjector {
         new JarInjector(new File(getCurrentDir(), "cache"))
                 .addBuilder(new JarBuilder("io.ebean", "ebean-core", "12.7.2", "https://repo.maven.apache.org/maven2")
                                     .setRepositoryProxy("https://repo.maven.apache.org/maven2", "https://nexus.egg82.me/repository/maven-central/"))
-                .inject((URLClassLoader) getClass().getClassLoader(), 1);
+                .inject(new InjectableClassLoader(getClass().getClassLoader()), 1);
     }
 
     @Test
@@ -41,14 +40,14 @@ class TestInjector {
                                     .setRepositoryProxy("https://repo.maven.apache.org/maven2", "https://nexus.egg82.me/repository/maven-central/"))
                 .addRelocation(new RelocationBuilder("io.ebeaninternal", "ninja.egg82.mvn.external").build())
                 .addRelocation(new RelocationBuilder("io.ebeanservice", "ninja.egg82.mvn.external").build())
-                .inject((URLClassLoader) getClass().getClassLoader(), 1);
+                .inject(new InjectableClassLoader(getClass().getClassLoader()), 1);
     }
 
     @Test
     void injectComplex() throws URISyntaxException, ModelBuildingException, IOException {
         new JarInjector(new File(getCurrentDir(), "cache"))
                 .addBuilder(new JarBuilder("com.destroystokyo.paper", "paper-api", "1.16.5-R0.1-SNAPSHOT", "https://papermc.io/repo/repository/maven-public/"))
-                .inject((URLClassLoader) getClass().getClassLoader(), 1);
+                .inject(new InjectableClassLoader(getClass().getClassLoader()), 1);
     }
 
     @Test
@@ -56,7 +55,7 @@ class TestInjector {
         new JarInjector(new File(getCurrentDir(), "cache"))
                 .addBuilder(new JarBuilder("com.destroystokyo.paper", "paper-api", "1.16.5-R0.1-SNAPSHOT", "https://papermc.io/repo/repository/maven-public/"))
                 .addRelocation(new RelocationBuilder("com.destroystokyo.paper", "ninja.egg82.mvn.external").build())
-                .inject((URLClassLoader) getClass().getClassLoader(), 1);
+                .inject(new InjectableClassLoader(getClass().getClassLoader()), 1);
     }
 
     @Test
@@ -65,7 +64,7 @@ class TestInjector {
                 .addBuilder(new JarBuilder("com.destroystokyo.paper", "paper-api", "1.16.5-R0.1-SNAPSHOT", "https://papermc.io/repo/repository/maven-public/")
                                     .setRepositoryProxy("https://papermc.io/repo/repository/maven-public/", "https://nexus.egg82.me/repository/papermc/")
                                     .setRepositoryProxy("https://repo.maven.apache.org/maven2", "https://nexus.egg82.me/repository/maven-central/"))
-                .inject((URLClassLoader) getClass().getClassLoader(), 1);
+                .inject(new InjectableClassLoader(getClass().getClassLoader()), 1);
     }
 
     @Test
@@ -75,7 +74,7 @@ class TestInjector {
                                     .setRepositoryProxy("https://papermc.io/repo/repository/maven-public/", "https://nexus.egg82.me/repository/papermc/")
                                     .setRepositoryProxy("https://repo.maven.apache.org/maven2", "https://nexus.egg82.me/repository/maven-central/"))
                 .addRelocation(new RelocationBuilder("com.destroystokyo.paper", "ninja.egg82.mvn.external").build())
-                .inject((URLClassLoader) getClass().getClassLoader(), 1);
+                .inject(new InjectableClassLoader(getClass().getClassLoader()), 1);
     }
 
     @NotNull
