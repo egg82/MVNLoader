@@ -1,7 +1,9 @@
 package ninja.egg82.mvn.internal;
 
 import com.nixxcode.jvmbrotli.common.BrotliLoader;
-import com.nixxcode.jvmbrotli.dec.BrotliInputStream;
+import ninja.egg82.mvn.internal.compressors.AbstractCompressor;
+import ninja.egg82.mvn.internal.compressors.BrotliCompressor;
+import ninja.egg82.mvn.internal.compressors.GZIPCompresor;
 import org.apache.maven.artifact.repository.metadata.Metadata;
 import org.apache.maven.artifact.repository.metadata.io.xpp3.MetadataXpp3Reader;
 import org.apache.maven.model.Repository;
@@ -19,28 +21,31 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
-import java.util.zip.DeflaterInputStream;
-import java.util.zip.GZIPInputStream;
 
 public class HttpUtils {
     private static final boolean HAS_BROTLI;
+    private static final @NotNull AbstractCompressor compressor;
 
     static {
-        boolean hasBrotli = true;
+        boolean hasBrotli = false;
+        AbstractCompressor c = null;
         try {
             Class.forName("com.nixxcode.jvmbrotli.common.BrotliLoader");
         } catch (ClassNotFoundException ignored) {
-            hasBrotli = false;
+            c = new GZIPCompresor();
         }
-        if (hasBrotli) {
-            hasBrotli = BrotliLoader.isBrotliAvailable();
+        if (c == null) {
+            if (BrotliLoader.isBrotliAvailable()) {
+                c = new BrotliCompressor();
+                hasBrotli = true;
+            } else {
+                c = new GZIPCompresor();
+            }
         }
         HAS_BROTLI = hasBrotli;
+        compressor = c;
     }
-
-    private static final @NotNull Pattern RE_COMMA = Pattern.compile("\\s*,\\s*");
 
     private HttpUtils() { }
 
@@ -290,7 +295,7 @@ public class HttpUtils {
         throwOnStandardErrors(conn);
 
         try (
-                InputStream in = decompress(conn.getInputStream(), conn.getHeaderField("Content-Encoding"));
+                InputStream in = compressor.decompress(conn.getInputStream(), conn.getHeaderField("Content-Encoding"));
                 FileOutputStream out = new FileOutputStream(outFile)
         ) {
             byte[] buffer = new byte[4096];
@@ -329,7 +334,7 @@ public class HttpUtils {
 
         throwOnStandardErrors(conn);
 
-        try (InputStream in = decompress(conn.getInputStream(), conn.getHeaderField("Content-Encoding"))) {
+        try (InputStream in = compressor.decompress(conn.getInputStream(), conn.getHeaderField("Content-Encoding"))) {
             return new MetadataXpp3Reader().read(in);
         } catch (XmlPullParserException ex) {
             throw new IOException("Could not parse maven-metadata XML file " + repositoryUrl, ex);
@@ -365,35 +370,6 @@ public class HttpUtils {
                     .getTimestamp() + "-" + metadata.getVersioning().getSnapshot().getBuildNumber();
         }
         return version;
-    }
-
-    @NotNull
-    private static InputStream decompress(@NotNull InputStream in, @Nullable String contentEncoding) throws IOException {
-        contentEncoding = contentEncoding != null ? contentEncoding.trim() : "";
-        if (contentEncoding.trim().isEmpty()) {
-            return in;
-        }
-        String[] encoding = RE_COMMA.split(contentEncoding);
-        InputStream retVal = in;
-        for (String e : encoding) {
-            switch (e) {
-                case "br":
-                    if (!HAS_BROTLI) {
-                        throw new IOException("Brotli compression given but Brotli is not available.");
-                    }
-                    retVal = new BrotliInputStream(retVal);
-                    break;
-                case "gzip":
-                    retVal = new GZIPInputStream(retVal);
-                    break;
-                case "deflate":
-                    retVal = new DeflaterInputStream(retVal);
-                    break;
-                default:
-                    break;
-            }
-        }
-        return retVal;
     }
 
     private static void throwOnStandardErrors(@NotNull HttpURLConnection connection) throws IOException {
