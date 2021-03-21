@@ -5,6 +5,7 @@ import org.apache.maven.model.Model;
 import org.apache.maven.model.Repository;
 import org.apache.maven.model.building.ModelBuildingException;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -16,6 +17,7 @@ class TestBuilder {
     void buildSimple() throws URISyntaxException, ModelBuildingException, IOException {
         Model model = new JarBuilder("io.ebean", "ebean-core", "12.7.2", "https://repo.maven.apache.org/maven2")
                 .build(new File(getCurrentDir(), "cache"));
+        Assertions.assertNotNull(model);
         System.out.println(model.getGroupId() + ":" + model.getArtifactId() + ":" + model.getVersion());
         for (Repository repo : model.getRepositories()) {
             if (repo.getReleases() != null && repo.getSnapshots() != null) {
@@ -35,6 +37,7 @@ class TestBuilder {
         Model model = new JarBuilder("io.ebean", "ebean-core", "12.7.2", "https://repo.maven.apache.org/maven2")
                 .setRepositoryProxy("https://repo.maven.apache.org/maven2", "https://nexus.egg82.me/repository/maven-central/")
                 .build(new File(getCurrentDir(), "cache"));
+        Assertions.assertNotNull(model);
         System.out.println(model.getGroupId() + ":" + model.getArtifactId() + ":" + model.getVersion());
         for (Repository repo : model.getRepositories()) {
             if (repo.getReleases() != null && repo.getSnapshots() != null) {
@@ -53,6 +56,7 @@ class TestBuilder {
     void buildComplex() throws URISyntaxException, ModelBuildingException, IOException {
         Model model = new JarBuilder("com.destroystokyo.paper", "paper-api", "1.16.5-R0.1-SNAPSHOT", "https://papermc.io/repo/repository/maven-public/")
                 .build(new File(getCurrentDir(), "cache"));
+        Assertions.assertNotNull(model);
         System.out.println(model.getGroupId() + ":" + model.getArtifactId() + ":" + model.getVersion());
         for (Repository repo : model.getRepositories()) {
             if (repo.getReleases() != null && repo.getSnapshots() != null) {
@@ -73,6 +77,7 @@ class TestBuilder {
                 .setRepositoryProxy("https://papermc.io/repo/repository/maven-public/", "https://nexus.egg82.me/repository/papermc/")
                 .setRepositoryProxy("https://repo.maven.apache.org/maven2", "https://nexus.egg82.me/repository/maven-central/")
                 .build(new File(getCurrentDir(), "cache"));
+        Assertions.assertNotNull(model);
         System.out.println(model.getGroupId() + ":" + model.getArtifactId() + ":" + model.getVersion());
         for (Repository repo : model.getRepositories()) {
             if (repo.getReleases() != null && repo.getSnapshots() != null) {

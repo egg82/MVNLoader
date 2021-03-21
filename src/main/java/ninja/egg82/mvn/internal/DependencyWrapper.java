@@ -6,7 +6,9 @@ import org.apache.maven.model.Repository;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
 
 public class DependencyWrapper implements Serializable {
     private final @NotNull Dependency dependency;

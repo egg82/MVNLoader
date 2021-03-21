@@ -6,6 +6,7 @@ import ninja.egg82.mvn.internal.DependencyWrapper;
 import ninja.egg82.mvn.internal.HttpUtils;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.Plugin;
 import org.apache.maven.model.Repository;
 import org.apache.maven.model.building.ModelBuildingException;
 import org.jetbrains.annotations.NotNull;
@@ -110,7 +111,10 @@ public class JarInjector {
         Map<@NotNull String, @Nullable DependencyWrapper> dependencies = new HashMap<>();
         List<@NotNull Model> models = new ArrayList<>();
         for (JarBuilder builder : builders) {
-            models.addAll(buildChain(builder, cacheDir, dependencies, true));
+            Model model = buildChain(builder, cacheDir, dependencies, true);
+            if (model != null) {
+                models.add(model);
+            }
         }
         dependencies.values().removeIf(v -> v == null || v.isCompiled());
 
@@ -257,25 +261,29 @@ public class JarInjector {
         return outFile;
     }
 
-    @NotNull
-    private List<@NotNull Model> buildChain(
+    @Nullable
+    private Model buildChain(
             @NotNull JarBuilder builder,
             @NotNull File cacheDir,
             @NotNull Map<@NotNull String, @Nullable DependencyWrapper> dependencies,
             boolean recurse
     ) throws IOException, ModelBuildingException {
-        List<@NotNull Model> retVal = new ArrayList<>();
         Model model = builder.build(cacheDir);
-        retVal.add(model);
+        if (model == null) {
+            return null;
+        }
 
         // Add dependencies breadth-first so we behave like Maven
         List<@NotNull JarBuilder> currentBuilders = new ArrayList<>();
+
+        boolean hasShade = hasShadePlugin(model);
 
         for (Dependency dependency : model.getDependencies()) {
             if (
                     dependency.getScope().equalsIgnoreCase("provided")
                             || dependency.getScope().equalsIgnoreCase("runtime")
                             || dependency.getScope().equalsIgnoreCase("system")
+                            || (!hasShade && dependency.getScope().equalsIgnoreCase("compile"))
             ) {
                 if (!dependencies.containsKey(dependency.getGroupId() + ":" + dependency.getArtifactId())) {
                     dependencies.put(
@@ -298,13 +306,22 @@ public class JarInjector {
         // Again, breadth-first. Only add deps, don't recurse until everything under this pom has been accounted for
         if (recurse) {
             for (JarBuilder b : currentBuilders) {
-                retVal.addAll(buildChain(b, cacheDir, dependencies, false));
+                buildChain(b, cacheDir, dependencies, false);
             }
             for (JarBuilder b : currentBuilders) {
-                retVal.addAll(buildChain(b, cacheDir, dependencies, true));
+                buildChain(b, cacheDir, dependencies, true);
             }
         }
 
-        return retVal;
+        return model;
+    }
+
+    private boolean hasShadePlugin(@NotNull Model model) {
+        for (Plugin plugin : model.getBuild().getPlugins()) {
+            if ("org.apache.maven.plugins".equals(plugin.getGroupId()) && "maven-shade-plugin".equals(plugin.getArtifactId())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

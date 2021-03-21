@@ -2,7 +2,6 @@ package ninja.egg82.mvn;
 
 import ninja.egg82.mvn.internal.HttpUtils;
 import ninja.egg82.mvn.internal.URLModelResolver;
-import org.apache.maven.artifact.repository.metadata.Metadata;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.building.*;
 import org.jetbrains.annotations.NotNull;
@@ -13,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 public class JarBuilder {
@@ -53,11 +51,16 @@ public class JarBuilder {
         return retVal;
     }
 
-    @NotNull
+    @Nullable
     public Model build(@NotNull File cacheDir) throws IOException, ModelBuildingException {
+        File pomFile = downloadPom(cacheDir);
+        if (pomFile == null) {
+            return null;
+        }
+
         ModelBuildingRequest request = new DefaultModelBuildingRequest();
         request.setProcessPlugins(true);
-        request.setPomFile(downloadPom(cacheDir));
+        request.setPomFile(pomFile);
         request.setValidationLevel(ModelBuildingRequest.VALIDATION_LEVEL_MINIMAL);
         request.setSystemProperties(System.getProperties());
         request.setModelResolver(new URLModelResolver(cacheDir, repositoryUrl, proxies));
@@ -68,7 +71,7 @@ public class JarBuilder {
         return retVal;
     }
 
-    @NotNull
+    @Nullable
     private File downloadPom(@NotNull File cacheDir) throws IOException {
         String proxy = proxies.get(HttpUtils.simplify(repositoryUrl));
 
@@ -94,10 +97,15 @@ public class JarBuilder {
                 logger.warn("Could not download artifact POM from proxy URL " + proxy, ex);
             }
         }
-        if (!realVersion.equals(version)) {
-            return HttpUtils.tryDownloadPom(outFile, repositoryUrl, groupId, artifactId, version, realVersion);
-        } else {
-            return HttpUtils.tryDownloadPom(outFile, repositoryUrl, groupId, artifactId, realVersion);
+        try {
+            if (!realVersion.equals(version)) {
+                return HttpUtils.tryDownloadPom(outFile, repositoryUrl, groupId, artifactId, version, realVersion);
+            } else {
+                return HttpUtils.tryDownloadPom(outFile, repositoryUrl, groupId, artifactId, realVersion);
+            }
+        } catch (IOException ex) {
+            logger.warn("Could not download artifact POM from repository URL " + repositoryUrl, ex);
         }
+        return null;
     }
 }
