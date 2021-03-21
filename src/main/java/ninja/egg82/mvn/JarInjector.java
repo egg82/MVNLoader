@@ -136,7 +136,8 @@ public class JarInjector {
                         inject(classLoader, wrapper);
                     } catch (IOException ex) {
                         errors.incrementAndGet();
-                        logger.error("Could not inject artifact " + wrapper.getDependency().getGroupId() + ":" + wrapper.getDependency().getArtifactId() + ":" + wrapper.getDependency().getVersion(), ex);
+                        logger.error("Could not inject artifact " + wrapper.getDependency().getGroupId() + ":" + wrapper.getDependency()
+                                .getArtifactId() + ":" + wrapper.getDependency().getVersion(), ex);
                     }
                     downloadLatch.countDown();
                 });
@@ -181,7 +182,12 @@ public class JarInjector {
 
     @NotNull
     private File inject(@NotNull URLClassLoader classLoader, @NotNull DependencyWrapper wrapper) throws IOException {
-        File retVal = downloadOrThrow(wrapper.getRepositories(), wrapper.getDependency().getGroupId(), wrapper.getDependency().getArtifactId(), wrapper.getDependency().getVersion());
+        File retVal = downloadOrThrow(
+                wrapper.getRepositories(),
+                wrapper.getDependency().getGroupId(),
+                wrapper.getDependency().getArtifactId(),
+                wrapper.getDependency().getVersion()
+        );
         try {
             ADD_URL_METHOD.invoke(classLoader, retVal.toURI().toURL());
         } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
@@ -191,7 +197,12 @@ public class JarInjector {
     }
 
     @NotNull
-    private File downloadOrThrow(@NotNull Collection<@NotNull Repository> repositories, @NotNull String groupId, @NotNull String artifactId, @NotNull String version) throws IOException {
+    private File downloadOrThrow(
+            @NotNull Collection<@NotNull Repository> repositories,
+            @NotNull String groupId,
+            @NotNull String artifactId,
+            @NotNull String version
+    ) throws IOException {
         File outFile;
         for (Repository repository : repositories) {
             try {
@@ -206,17 +217,30 @@ public class JarInjector {
                 }
 
                 if (!realVersion.equals(version)) {
-                    return relocate(HttpUtils.tryDownloadJar(outFile, repository.getUrl(), groupId, artifactId, version, realVersion), groupId, artifactId, version, realVersion);
+                    return relocate(
+                            HttpUtils.tryDownloadJar(outFile, repository.getUrl(), groupId, artifactId, version, realVersion),
+                            groupId,
+                            artifactId,
+                            version,
+                            realVersion
+                    );
                 } else {
                     return relocate(HttpUtils.tryDownloadJar(outFile, repository.getUrl(), groupId, artifactId, version), groupId, artifactId, version, realVersion);
                 }
-            } catch (IOException ignored) { }
+            } catch (IOException ignored) {
+            }
         }
         throw new IOException("Artifact was not found in any provided repository.");
     }
 
     @NotNull
-    private File relocate(@NotNull File inFile, @NotNull String groupId, @NotNull String artifactId, @NotNull String version, @NotNull String realVersion) throws IOException {
+    private File relocate(
+            @NotNull File inFile,
+            @NotNull String groupId,
+            @NotNull String artifactId,
+            @NotNull String version,
+            @NotNull String realVersion
+    ) throws IOException {
         if (relocations.isEmpty()) {
             return inFile;
         }
@@ -250,7 +274,10 @@ public class JarInjector {
                             || dependency.getScope().equalsIgnoreCase("system")
             ) {
                 if (!dependencies.containsKey(dependency.getGroupId() + ":" + dependency.getArtifactId() + ":" + dependency.getVersion())) {
-                    dependencies.put(dependency.getGroupId() + ":" + dependency.getArtifactId() + ":" + dependency.getVersion(), new DependencyWrapper(model, dependency));
+                    dependencies.put(
+                            dependency.getGroupId() + ":" + dependency.getArtifactId() + ":" + dependency.getVersion(),
+                            new DependencyWrapper(model, dependency)
+                    );
                     retVal.addAll(buildChain(builder.clone(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion()), cacheDir, dependencies));
                 }
             } else {

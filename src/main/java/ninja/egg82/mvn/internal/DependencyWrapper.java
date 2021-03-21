@@ -37,8 +37,12 @@ public class DependencyWrapper implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         DependencyWrapper that = (DependencyWrapper) o;
         return dependency.getGroupId().equals(that.dependency.getGroupId())
                 && dependency.getArtifactId().equals(that.dependency.getArtifactId())

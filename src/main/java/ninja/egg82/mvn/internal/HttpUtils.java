@@ -337,7 +337,14 @@ public class HttpUtils {
     }
 
     @NotNull
-    public static String getRealVersion(@NotNull String repositoryUrl, @Nullable String proxy, @NotNull String groupId, @NotNull String artifactId, @NotNull String version, @Nullable Logger logger) throws IOException {
+    public static String getRealVersion(
+            @NotNull String repositoryUrl,
+            @Nullable String proxy,
+            @NotNull String groupId,
+            @NotNull String artifactId,
+            @NotNull String version,
+            @Nullable Logger logger
+    ) throws IOException {
         if (version.toLowerCase(Locale.ROOT).endsWith("-snapshot")) {
             Metadata metadata = null;
             if (proxy != null) {
