@@ -165,6 +165,7 @@ public class JarInjector {
             if (!downloadLatch.await(maxDownloadTime, maxDownloadTimeUnit)) {
                 logger.error("Could not download required artifacts.");
             }
+            pool.shutdownNow();
             if (errors.get() > 0) {
                 logger.error("Some artifacts reported errors while downloading.");
             }
