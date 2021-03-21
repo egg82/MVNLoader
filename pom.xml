@@ -156,9 +156,12 @@
         </plugins>
     </build>
 
-    <repositories>
-
-    </repositories>
+    <distributionManagement>
+        <repository>
+            <id>nexus</id>
+            <url>https://nexus.egg82.me/repository/maven-releases/</url>
+        </repository>
+    </distributionManagement>
 
     <dependencies>
         <dependency>
