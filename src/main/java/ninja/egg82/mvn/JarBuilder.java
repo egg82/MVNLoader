@@ -26,15 +26,23 @@ public class JarBuilder {
 
     private static final ModelBuilder MODEL_BUILDER = new DefaultModelBuilderFactory().newInstance();
 
-    public JarBuilder(@NotNull String group, @NotNull String artifact, @NotNull String version, @NotNull String repositoryUrl) {
-        this(group, artifact, version, repositoryUrl, null);
+    public JarBuilder(@NotNull String groupId, @NotNull String artifactId, @NotNull String version) {
+        this(groupId, artifactId, version, null, null);
     }
 
-    public JarBuilder(@NotNull String groupId, @NotNull String artifactId, @NotNull String version, @NotNull String repositoryUrl, @Nullable Logger logger) {
+    public JarBuilder(@NotNull String groupId, @NotNull String artifactId, @NotNull String version, @Nullable String repositoryUrl) {
+        this(groupId, artifactId, version, repositoryUrl, null);
+    }
+
+    public JarBuilder(@NotNull String groupId, @NotNull String artifactId, @NotNull String version, @Nullable Logger logger) {
+        this(groupId, artifactId, version, null, logger);
+    }
+
+    public JarBuilder(@NotNull String groupId, @NotNull String artifactId, @NotNull String version, @Nullable String repositoryUrl, @Nullable Logger logger) {
         this.groupId = groupId;
         this.artifactId = artifactId;
         this.version = version;
-        this.repositoryUrl = repositoryUrl;
+        this.repositoryUrl = repositoryUrl != null ? repositoryUrl : "https://repo.maven.apache.org/maven2";
 
         this.logger = logger != null ? logger : LoggerFactory.getLogger(getClass());
     }
