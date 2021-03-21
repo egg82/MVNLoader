@@ -1,5 +1,6 @@
 package ninja.egg82.mvn;
 
+import ninja.egg82.mvn.classloaders.IsolatedInjectableClassLoader;
 import org.apache.maven.model.building.ModelBuildingException;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
@@ -86,7 +87,7 @@ class TestInjectComplex {
         injector.addRelocation(new RelocationBuilder("redis{}clients{}jedis", "me.egg82.antivpn.external").build("{}", "."));
 
         // Inject
-        injector.inject(new InjectableClassLoader(getClass().getClassLoader()), 1);
+        injector.inject(new IsolatedInjectableClassLoader(getClass().getClassLoader()), 1);
     }
 
     // Prevent Maven from relocating these

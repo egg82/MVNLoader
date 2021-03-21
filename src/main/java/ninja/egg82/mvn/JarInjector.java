@@ -2,6 +2,7 @@ package ninja.egg82.mvn;
 
 import me.lucko.jarrelocator.JarRelocator;
 import me.lucko.jarrelocator.Relocation;
+import ninja.egg82.mvn.classloaders.InjectableClassLoader;
 import ninja.egg82.mvn.internal.DependencyWrapper;
 import ninja.egg82.mvn.internal.HttpUtils;
 import org.apache.maven.model.Dependency;
