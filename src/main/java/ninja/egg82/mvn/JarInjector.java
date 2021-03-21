@@ -110,7 +110,7 @@ public class JarInjector {
         Map<@NotNull String, @Nullable DependencyWrapper> dependencies = new HashMap<>();
         List<@NotNull Model> models = new ArrayList<>();
         for (JarBuilder builder : builders) {
-            models.addAll(buildChain(builder, cacheDir, dependencies));
+            models.addAll(buildChain(builder, cacheDir, dependencies, true));
         }
         dependencies.values().removeIf(v -> v == null || v.isCompiled());
 
@@ -261,11 +261,15 @@ public class JarInjector {
     private List<@NotNull Model> buildChain(
             @NotNull JarBuilder builder,
             @NotNull File cacheDir,
-            @NotNull Map<@NotNull String, @Nullable DependencyWrapper> dependencies
+            @NotNull Map<@NotNull String, @Nullable DependencyWrapper> dependencies,
+            boolean recurse
     ) throws IOException, ModelBuildingException {
         List<@NotNull Model> retVal = new ArrayList<>();
         Model model = builder.build(cacheDir);
         retVal.add(model);
+
+        // Add dependencies breadth-first so we behave like Maven
+        List<@NotNull JarBuilder> currentBuilders = new ArrayList<>();
 
         for (Dependency dependency : model.getDependencies()) {
             if (
@@ -273,21 +277,31 @@ public class JarInjector {
                             || dependency.getScope().equalsIgnoreCase("runtime")
                             || dependency.getScope().equalsIgnoreCase("system")
             ) {
-                if (!dependencies.containsKey(dependency.getGroupId() + ":" + dependency.getArtifactId() + ":" + dependency.getVersion())) {
+                if (!dependencies.containsKey(dependency.getGroupId() + ":" + dependency.getArtifactId())) {
                     dependencies.put(
                             dependency.getGroupId() + ":" + dependency.getArtifactId() + ":" + dependency.getVersion(),
                             new DependencyWrapper(model, dependency)
                     );
-                    retVal.addAll(buildChain(builder.clone(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion()), cacheDir, dependencies));
+                    currentBuilders.add(builder.clone(dependency.getGroupId(), dependency.getArtifactId(), dependency.getVersion()));
                 }
             } else {
-                dependencies.compute(dependency.getGroupId() + ":" + dependency.getArtifactId() + ":" + dependency.getVersion(), (k, v) -> {
+                dependencies.compute(dependency.getGroupId() + ":" + dependency.getArtifactId(), (k, v) -> {
                     if (v == null) {
                         v = new DependencyWrapper(model, dependency);
                     }
                     v.setCompiled(true);
                     return v;
                 });
+            }
+        }
+
+        // Again, breadth-first. Only add deps, don't recurse until everything under this pom has been accounted for
+        if (recurse) {
+            for (JarBuilder b : currentBuilders) {
+                retVal.addAll(buildChain(b, cacheDir, dependencies, false));
+            }
+            for (JarBuilder b : currentBuilders) {
+                retVal.addAll(buildChain(b, cacheDir, dependencies, true));
             }
         }
 
