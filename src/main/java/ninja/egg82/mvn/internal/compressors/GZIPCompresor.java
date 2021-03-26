@@ -10,7 +10,8 @@ import java.util.zip.GZIPInputStream;
 
 public class GZIPCompresor extends AbstractCompressor {
     @Override
-    public @NotNull InputStream decompress(@NotNull InputStream in, @Nullable String contentEncoding) throws IOException {
+    @NotNull
+    public InputStream decompress(@NotNull InputStream in, @Nullable String contentEncoding) throws IOException {
         contentEncoding = contentEncoding != null ? contentEncoding.trim() : "";
         if (contentEncoding.trim().isEmpty()) {
             return in;

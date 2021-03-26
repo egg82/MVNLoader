@@ -94,7 +94,8 @@ class TestInjectComplex {
     @NotNull
     private String replace(@NotNull String pkg) { return pkg.replace("{}", "."); }
 
-    private @NotNull String getJavassistPackage() { return new String(new byte[] { 'j', 'a', 'v', 'a', 's', 's', 'i', 's', 't' }); }
+    @NotNull
+    private String getJavassistPackage() { return new String(new byte[] { 'j', 'a', 'v', 'a', 's', 's', 'i', 's', 't' }); }
 
     @NotNull
     private File getCurrentDir() throws URISyntaxException {

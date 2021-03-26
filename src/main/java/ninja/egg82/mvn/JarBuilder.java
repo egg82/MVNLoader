@@ -54,7 +54,8 @@ public class JarBuilder {
         return this;
     }
 
-    public @NotNull JarBuilder clone(@NotNull String groupId, @NotNull String artifactId, @NotNull String version) {
+    @NotNull
+    public JarBuilder clone(@NotNull String groupId, @NotNull String artifactId, @NotNull String version) {
         JarBuilder retVal = new JarBuilder(groupId, artifactId, version, repositoryUrl, logger);
         retVal.proxies.putAll(proxies);
         return retVal;
